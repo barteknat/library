@@ -23,10 +23,10 @@ public class Book {
     private String author;
     private LocalDate publicationDate;
     @OneToMany(
-            targetEntity = BookItem.class,
+            targetEntity = Exemplar.class,
             mappedBy = "book",
             cascade = CascadeType.ALL,
             fetch = FetchType.LAZY
     )
-    private final List<BookItem> bookItems = new ArrayList<>();
+    private final List<Exemplar> exemplars = new ArrayList<>();
 }

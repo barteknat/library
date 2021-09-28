@@ -1,6 +1,6 @@
 package com.crud.library.dto;
 
-import com.crud.library.status.LendStatus;
+import com.crud.library.status.RentalStatus;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -8,8 +8,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class BookItemDto {
+public class ExemplarDto {
 
     private long id;
-    private LendStatus status;
+    private RentalStatus status;
 }

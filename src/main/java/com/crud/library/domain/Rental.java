@@ -10,16 +10,16 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-@Entity(name = "LENDS")
-public class Lend {
+@Entity(name = "RENTALS")
+public class Rental {
 
     @Id
     @GeneratedValue
     private long id;
-    private LocalDate lendDate;
+    private LocalDate rentDate;
     private LocalDate returnDate;
     @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
-    private BookItem bookItem;
+    private Exemplar exemplar;
     @ManyToOne
     private User user;
 }

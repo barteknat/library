@@ -9,9 +9,9 @@ import java.time.LocalDate;
 @NoArgsConstructor
 @AllArgsConstructor
 @Data
-public class LendDto {
+public class RentalDto {
 
     private long id;
-    private LocalDate lendDate;
+    private LocalDate rentDate;
     private LocalDate returnDate;
 }

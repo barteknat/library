@@ -1,20 +1,17 @@
 package com.crud.library.repository;
 
-import com.crud.library.domain.Lend;
+import com.crud.library.domain.Rental;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import javax.transaction.Transactional;
-
-@Transactional
 @Repository
-public interface LendRepository extends JpaRepository<Lend, Long> {
+public interface RentalRepository extends JpaRepository<Rental, Long> {
 
-    Lend findById(long id);
+    Rental findById(long id);
 
     void deleteById(long id);
 
     boolean existsById(long id);
 
-    boolean existsByBookItemId(long id);
+    boolean existsByExemplarId(long id);
 }

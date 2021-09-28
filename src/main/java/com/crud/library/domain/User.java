@@ -23,10 +23,10 @@ public class User {
     private String mailAddress;
     private LocalDate signUp;
     @OneToMany(
-            targetEntity = Lend.class,
+            targetEntity = Rental.class,
             mappedBy = "user",
             cascade = CascadeType.ALL,
             fetch = FetchType.EAGER
     )
-    private final List<Lend> lends = new ArrayList<>();
+    private final List<Rental> rentals = new ArrayList<>();
 }
