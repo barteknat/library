@@ -15,5 +15,5 @@ public class BookDto {
     private String signature;
     private String title;
     private String author;
-    private LocalDate publicationDate;
+    private long year;
 }

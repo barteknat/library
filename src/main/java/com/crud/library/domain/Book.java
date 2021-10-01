@@ -21,7 +21,7 @@ public class Book {
     private String signature;
     private String title;
     private String author;
-    private LocalDate publicationDate;
+    private long year;
     @OneToMany(
             targetEntity = Exemplar.class,
             mappedBy = "book",

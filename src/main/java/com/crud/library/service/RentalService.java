@@ -38,7 +38,6 @@ public class RentalService {
         User user = userRepository.findById(userId);
         Rental rental = mapper.mapToRental(rentalDto);
         rental.setExemplar(exemplar);
-        user.getRentals().add(rental);
         rental.setUser(user);
         exemplar.setStatus(BORROWED);
         return mapper.mapToRentalDto(repository.save(rental));
@@ -73,9 +72,10 @@ public class RentalService {
     }
 
     @Transactional
-    public void giveBackExemplar(long id, LocalDate date) {
+    public void giveBackExemplar(long id) {
         if (isRentalExists(id)) return;
         Rental rental = repository.findById(id);
+        LocalDate date = LocalDate.now();
         if (isPenalty(date, rental)) return;
         rental.getExemplar().setStatus(AVAILABLE);
         log.info("EXEMPLAR HAS BEEN RETURNED");

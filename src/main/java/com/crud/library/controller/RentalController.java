@@ -17,14 +17,14 @@ public class RentalController {
 
     private final RentalService service;
 
-    @PostMapping(value = "/{userId}/{exemplarId}", consumes = APPLICATION_JSON_VALUE)
-    public RentalDto rent(@PathVariable long userId, @PathVariable long exemplarId, @RequestBody RentalDto rentalDto) {
+    @PostMapping(consumes = APPLICATION_JSON_VALUE)
+    public RentalDto rent(@RequestParam long userId, @RequestParam long exemplarId, @RequestBody RentalDto rentalDto) {
         return service.rentExemplar(userId, exemplarId, rentalDto);
     }
 
     @PutMapping(value = "/{id}")
-    public void giveBack(@PathVariable long id, @RequestParam @DateTimeFormat(pattern = "yyyy-MM-dd") LocalDate date) {
-        service.giveBackExemplar(id, date);
+    public void giveBack(@PathVariable long id) {
+        service.giveBackExemplar(id);
     }
 
     @PutMapping(value = "/payPenalty/{id}")

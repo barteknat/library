@@ -18,5 +18,6 @@ public class Exemplar {
     private long id;
     private RentalStatus status;
     @ManyToOne
+    @JoinColumn(name = "BOOK_ID")
     private Book book;
 }

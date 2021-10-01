@@ -13,9 +13,9 @@ public class ExemplarController {
 
     private final ExemplarService service;
 
-    @GetMapping(value = "/{id}")
-    public long getAvailable(@PathVariable long id) {
-        return service.findAvailable(id);
+    @GetMapping
+    public long getAvailable(@RequestParam long bookId) {
+        return service.findAvailable(bookId);
     }
 
     @PostMapping(value = "/{id}")

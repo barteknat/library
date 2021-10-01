@@ -22,11 +22,4 @@ public class User {
     private String lastName;
     private String mailAddress;
     private LocalDate signUp;
-    @OneToMany(
-            targetEntity = Rental.class,
-            mappedBy = "user",
-            cascade = CascadeType.ALL,
-            fetch = FetchType.EAGER
-    )
-    private final List<Rental> rentals = new ArrayList<>();
 }

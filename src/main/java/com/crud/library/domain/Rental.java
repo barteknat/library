@@ -18,8 +18,10 @@ public class Rental {
     private long id;
     private LocalDate rentDate;
     private LocalDate returnDate;
-    @OneToOne(cascade = CascadeType.ALL, fetch = FetchType.EAGER)
+    @ManyToOne
+    @JoinColumn(name = "EXEMPLAR_ID")
     private Exemplar exemplar;
     @ManyToOne
+    @JoinColumn(name = "USER_ID")
     private User user;
 }
