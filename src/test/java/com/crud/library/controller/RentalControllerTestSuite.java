@@ -21,7 +21,7 @@ import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
 import java.time.LocalDate;
 
-import static com.crud.library.status.RentalStatus.AVAILABLE;
+import static com.crud.library.status.ExemplarStatus.AVAILABLE;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 
@@ -43,10 +43,10 @@ class RentalControllerTestSuite {
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         User user = new User(1, "Adam", "Smith", "test@test.com", LocalDate.parse("1998-01-01"));
         long userId = user.getId();
-        Exemplar exemplar = new Exemplar(1, AVAILABLE, new Book(1, "test_signature", "test_title", "test_author", LocalDate.parse("1990-01-01")));
+        Exemplar exemplar = new Exemplar(1, AVAILABLE, new Book(1, "test_signature", "test_title", "test_author", 1990));
         long exemplarId = exemplar.getId();
         RentalDto rentalDto = new RentalDto(1, LocalDate.parse("2000-01-01"), LocalDate.parse("2000-01-20"));
-        when(rentalService.rentExemplar(userId, exemplarId, rentalDto)).thenReturn(rentalDto);
+        when(rentalService.rentExemplar(userId, exemplarId)).thenReturn(rentalDto);
         String jsonContent = mapper.writeValueAsString(rentalDto);
 
         //When & Then

@@ -16,8 +16,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import java.time.LocalDate;
-
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
@@ -38,7 +36,7 @@ class BookControllerTestSuite {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        BookDto bookDto = new BookDto(1, "test", "test", "test", LocalDate.parse("2000-01-01"));
+        BookDto bookDto = new BookDto(1, "test", "test", "test", 2000);
         when(bookService.createBook(any(BookDto.class))).thenReturn(bookDto);
         String jsonContent = mapper.writeValueAsString(bookDto);
 

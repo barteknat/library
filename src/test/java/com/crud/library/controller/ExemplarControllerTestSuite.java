@@ -12,8 +12,8 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers;
 
-import static com.crud.library.status.RentalStatus.AVAILABLE;
-import static com.crud.library.status.RentalStatus.DAMAGED;
+import static com.crud.library.status.ExemplarStatus.AVAILABLE;
+import static com.crud.library.status.ExemplarStatus.DAMAGED;
 import static org.mockito.Mockito.when;
 
 @SpringJUnitWebConfig

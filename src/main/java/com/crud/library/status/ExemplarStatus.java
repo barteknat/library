@@ -1,9 +1,10 @@
 package com.crud.library.status;
 
-public enum RentalStatus {
+public enum ExemplarStatus {
 
     AVAILABLE,
     BORROWED,
     DAMAGED,
-    LOST
+    LOST,
+    GOOD
 }

@@ -6,44 +6,41 @@ import com.crud.library.dto.ExemplarDto;
 import com.crud.library.mapper.ExemplarMapper;
 import com.crud.library.repository.ExemplarRepository;
 import com.crud.library.repository.BookRepository;
-import com.crud.library.status.RentalStatus;
+import com.crud.library.status.ExemplarStatus;
+import javassist.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 
-import static com.crud.library.status.RentalStatus.AVAILABLE;
+import static com.crud.library.status.ExemplarStatus.AVAILABLE;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExemplarService {
 
-    private final ExemplarRepository repository;
-    private final ExemplarMapper mapper;
+    private final ExemplarRepository exemplarRepository;
+    private final ExemplarMapper exemplarMapper;
     private final BookRepository bookRepository;
 
-    public long findAvailable(long id) {
-        return repository.countExemplarsByBook_IdAndStatus(id, AVAILABLE);
-    }
-
     @Transactional
-    public ExemplarDto createExemplar(long id) {
-        if (!bookRepository.existsById(id)) return new ExemplarDto();
-        Book book = bookRepository.findById(id);
+    public ExemplarDto createExemplar(long bookId) throws NotFoundException {
+        if (!bookRepository.existsById(bookId)) throw new NotFoundException("BOOK NOT FOUND IN DATABASE");
+        Book book = bookRepository.findById(bookId);
         Exemplar exemplar = new Exemplar();
         exemplar.setStatus(AVAILABLE);
         book.getExemplars().add(exemplar);
         exemplar.setBook(book);
-        return mapper.mapToExemplarDto(repository.save(exemplar));
+        return exemplarMapper.mapToExemplarDto(exemplarRepository.save(exemplar));
     }
 
     @Transactional
-    public ExemplarDto updateExemplar(long id, RentalStatus status) {
-        if (!repository.existsById(id)) return new ExemplarDto();
-        Exemplar exemplar = repository.findById(id);
-        exemplar.setStatus(status);
-        return mapper.mapToExemplarDto(repository.save(exemplar));
+    public ExemplarDto updateExemplar(long exemplarId, ExemplarStatus exemplarStatus) {
+        if (!exemplarRepository.existsById(exemplarId)) return new ExemplarDto();
+        Exemplar exemplar = exemplarRepository.findById(exemplarId);
+        exemplar.setStatus(exemplarStatus);
+        return exemplarMapper.mapToExemplarDto(exemplarRepository.save(exemplar));
     }
 }

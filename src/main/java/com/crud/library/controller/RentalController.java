@@ -1,34 +1,32 @@
 package com.crud.library.controller;
 
 import com.crud.library.dto.RentalDto;
+import com.crud.library.exception.ExemplarIsBorrowedException;
 import com.crud.library.service.RentalService;
+import com.crud.library.status.ExemplarStatus;
+import javassist.NotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.web.bind.annotation.*;
-
-import java.time.LocalDate;
-
-import static org.springframework.http.MediaType.APPLICATION_JSON_VALUE;
 
 @RestController
 @RequiredArgsConstructor
 @RequestMapping("/v1/rental")
 public class RentalController {
 
-    private final RentalService service;
+    private final RentalService rentalService;
 
-    @PostMapping(consumes = APPLICATION_JSON_VALUE)
-    public RentalDto rent(@RequestParam long userId, @RequestParam long exemplarId, @RequestBody RentalDto rentalDto) {
-        return service.rentExemplar(userId, exemplarId, rentalDto);
+    @PostMapping
+    public RentalDto rent(@RequestParam long userId, @RequestParam long exemplarId) throws NotFoundException, ExemplarIsBorrowedException {
+        return rentalService.rentExemplar(userId, exemplarId);
     }
 
-    @PutMapping(value = "/{id}")
-    public void giveBack(@PathVariable long id) {
-        service.giveBackExemplar(id);
+    @PutMapping
+    public void giveBack(@RequestParam long userId, @RequestParam long exemplarId, @RequestParam ExemplarStatus exemplarStatus) throws NotFoundException {
+        rentalService.giveBackExemplar(userId, exemplarId, exemplarStatus);
     }
 
-    @PutMapping(value = "/payPenalty/{id}")
-    public void payPenalty(@PathVariable long id, @RequestParam String charge) {
-        service.payForExemplar(id, charge);
+    @PutMapping(value = "/payPenalty/{rentalId}")
+    public void payPenalty(@PathVariable long exemplarId, @RequestParam String charge) {
+        rentalService.payForExemplar(exemplarId, charge);
     }
 }

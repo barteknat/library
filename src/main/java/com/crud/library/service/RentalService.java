@@ -4,10 +4,13 @@ import com.crud.library.domain.Exemplar;
 import com.crud.library.domain.Rental;
 import com.crud.library.domain.User;
 import com.crud.library.dto.RentalDto;
+import com.crud.library.exception.ExemplarIsBorrowedException;
 import com.crud.library.mapper.RentalMapper;
 import com.crud.library.repository.ExemplarRepository;
 import com.crud.library.repository.RentalRepository;
 import com.crud.library.repository.UserRepository;
+import com.crud.library.status.ExemplarStatus;
+import javassist.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -17,47 +20,69 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 
-import static com.crud.library.status.RentalStatus.*;
+import static com.crud.library.status.ExemplarStatus.*;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class RentalService {
 
-    private final RentalRepository repository;
-    private final RentalMapper mapper;
+    private final RentalRepository rentalRepository;
+    private final RentalMapper rentalMapper;
     private final ExemplarRepository exemplarRepository;
     private final UserRepository userRepository;
 
     @Transactional
-    public RentalDto rentExemplar(long userId, long exemplarId, RentalDto rentalDto) {
-        if (isUserOrExemplarNotExists(userId, exemplarId)) return new RentalDto();
-        if (isExists(exemplarId)) return new RentalDto();
+    public RentalDto rentExemplar(long userId, long exemplarId) throws NotFoundException, ExemplarIsBorrowedException {
+        if (isUserNotExist(userId)) throw new NotFoundException("NOT FOUND IN DATABASE");
+        if (isExemplarNotExist(exemplarId)) throw new NotFoundException("NOT FOUND IN DATABASE");
         Exemplar exemplar = exemplarRepository.findById(exemplarId);
-        if (isBorrowed(exemplar)) return new RentalDto();
+        if (isBorrowed(exemplar)) throw new ExemplarIsBorrowedException("EXEMPLAR IS ALREADY BORROWED");
+        exemplar.setStatus(BORROWED);
         User user = userRepository.findById(userId);
-        Rental rental = mapper.mapToRental(rentalDto);
+        Rental rental = new Rental();
+        rental.setRentDate(LocalDate.now());
+        rental.setReturnDate(LocalDate.now().plusDays(30));
         rental.setExemplar(exemplar);
         rental.setUser(user);
-        exemplar.setStatus(BORROWED);
-        return mapper.mapToRentalDto(repository.save(rental));
+        return rentalMapper.mapToRentalDto(rentalRepository.save(rental));
     }
 
-    private boolean isUserOrExemplarNotExists(long userId, long exemplarId) {
+    @Transactional
+    public void giveBackExemplar(long userId, long exemplarId, ExemplarStatus exemplarStatus) throws NotFoundException {
+        if (isUserNotExist(userId)) throw new NotFoundException("USER NOT FOUND IN DATABASE");
+        if (isExemplarNotExist(exemplarId)) throw new NotFoundException("EXEMPLAR NOT FOUND IN DATABASE");
+        if (isRentalNotExist(userId, exemplarId)) throw new NotFoundException("RENTAL NOT FOUND IN DATABASE");
+        Rental rental = rentalRepository.findByUser_IdAndExemplar_Id(userId, exemplarId);
+        rental.getExemplar().setStatus(exemplarStatus);
+        if (isExemplarStatusDamagedOrLost(rental, exemplarStatus)) return;
+        if (isBookKeepingPenalty(rental, LocalDate.now())) return;
+        rental.getExemplar().setStatus(AVAILABLE);
+        rentalMapper.mapToRentalDto(rentalRepository.save(rental));
+        log.info("EXEMPLAR HAS BEEN RETURNED");
+    }
+
+    @Transactional
+    public void payForExemplar(long exemplarId, String charge) {
+        Rental rental = rentalRepository.getByExemplar_Id(exemplarId);
+        if (isPenaltyUnnecessary(rental)) return;
+        if (isPenaltyNotAvailable(charge)) return;
+        rental.getExemplar().setStatus(AVAILABLE);
+        log.info("USER HAS PAID PENALTY FOR EXEMPLAR");
+        rentalMapper.mapToRentalDto(rentalRepository.save(rental));
+    }
+
+    private boolean isUserNotExist(long userId) {
         if (!userRepository.existsById(userId)) {
             log.error("USER NOT EXISTS");
-            return true;
-        }
-        if (!exemplarRepository.existsById(exemplarId)) {
-            log.error("EXEMPLAR NOT EXISTS");
             return true;
         }
         return false;
     }
 
-    private boolean isExists(long exemplarId) {
-        if (repository.existsByExemplarId(exemplarId)) {
-            log.error("RENTAL ALREADY EXISTS");
+    private boolean isExemplarNotExist(long exemplarId) {
+        if (!exemplarRepository.existsById(exemplarId)) {
+            log.error("EXEMPLAR NOT EXISTS");
             return true;
         }
         return false;
@@ -71,53 +96,46 @@ public class RentalService {
         return false;
     }
 
-    @Transactional
-    public void giveBackExemplar(long id) {
-        if (isRentalExists(id)) return;
-        Rental rental = repository.findById(id);
-        LocalDate date = LocalDate.now();
-        if (isPenalty(date, rental)) return;
-        rental.getExemplar().setStatus(AVAILABLE);
-        log.info("EXEMPLAR HAS BEEN RETURNED");
-        mapper.mapToRentalDto(repository.save(rental));
-    }
-
-    private boolean isRentalExists(long id) {
-        if (!repository.existsById(id)) {
+    private boolean isRentalNotExist(long userId, long exemplarId) {
+        if (!rentalRepository.existsByUser_IdAndExemplar_Id(userId, exemplarId)) {
             log.error("RENTAL NOT EXISTS");
             return true;
         }
         return false;
     }
 
-    private boolean isPenalty(LocalDate date, Rental rental) {
-        if (rental.getReturnDate().isBefore(date)) {
-            log.info("\n" + "USER HAS TO PAY PENALTY FEE FOR OVER KEEPING: " + "\n" +
-                    "OVER KEEPING PERIOD: " + getOverKeepingPeriod(rental, date) + " DAYS" + "\n" +
-                    "PENALTY FOR ONE DAY OF OVER KEEPING: 5$" + "\n" +
-                    "CHARGE USER ACCOUNT FOR: -" + countPenalty(rental, date) + "$");
+    private boolean isExemplarStatusDamagedOrLost(Rental rental, ExemplarStatus exemplarStatus) {
+        if (exemplarStatus.equals(DAMAGED) && rental.getExemplar().getStatus().equals(exemplarStatus)) {
+            rental.getExemplar().setStatus(DAMAGED);
+            log.info("USER HAS TO PAY FOR EXEMPLAR FIRST");
+            return true;
+        }
+        if (exemplarStatus.equals(LOST) && rental.getExemplar().getStatus().equals(exemplarStatus)) {
+            rental.getExemplar().setStatus(LOST);
+            log.info("USER HAS TO PAY FOR EXEMPLAR FIRST");
             return true;
         }
         return false;
     }
 
-    private long getOverKeepingPeriod(Rental rental, LocalDate date) {
-        return ChronoUnit.DAYS.between(rental.getReturnDate(), date);
+    private boolean isBookKeepingPenalty(Rental rental, LocalDate dateOfReturn) {
+        if (rental.getReturnDate().isBefore(dateOfReturn)) {
+            log.info("\n" + "USER HAS TO PAY PENALTY FEE FOR OVER KEEPING: " + "\n" +
+                    "OVER KEEPING PERIOD: " + getBookKeepingPeriod(rental, dateOfReturn) + " DAYS" + "\n" +
+                    "PENALTY FOR ONE DAY OF OVER KEEPING: 5$" + "\n" +
+                    "CHARGE USER ACCOUNT FOR: -" + countPenalty(rental, dateOfReturn) + "$");
+            return true;
+        }
+        return false;
     }
 
-    private BigDecimal countPenalty(Rental rental, LocalDate date) {
+    private long getBookKeepingPeriod(Rental rental, LocalDate dateOfReturn) {
+        return ChronoUnit.DAYS.between(rental.getReturnDate(), dateOfReturn);
+    }
+
+    private BigDecimal countPenalty(Rental rental, LocalDate dateOfReturn) {
         BigDecimal penaltyForOneDay = new BigDecimal(5);
-        return new BigDecimal(getOverKeepingPeriod(rental, date)).multiply(penaltyForOneDay);
-    }
-
-    @Transactional
-    public void payForExemplar(long id, String charge) {
-        Rental rental = repository.findById(id);
-        if (isPenaltyUnnecessary(rental)) return;
-        if (isPenaltyNotAvailable(charge)) return;
-        rental.getExemplar().setStatus(AVAILABLE);
-        log.info("USER HAS PAID PENALTY FOR EXEMPLAR");
-        mapper.mapToRentalDto(repository.save(rental));
+        return new BigDecimal(getBookKeepingPeriod(rental, dateOfReturn)).multiply(penaltyForOneDay);
     }
 
     private boolean isPenaltyUnnecessary(Rental rental) {
