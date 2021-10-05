@@ -14,8 +14,8 @@ public class ExemplarController {
 
     private final ExemplarService exemplarService;
 
-    @PostMapping(value = "/{bookId}")
-    public ExemplarDto create(@PathVariable long bookId) throws NotFoundException {
+    @PostMapping
+    public ExemplarDto create(@RequestParam long bookId) throws NotFoundException {
         return exemplarService.createExemplar(bookId);
     }
 
