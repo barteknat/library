@@ -5,6 +5,8 @@ import com.crud.library.domain.Rental;
 import com.crud.library.domain.User;
 import com.crud.library.dto.RentalDto;
 import com.crud.library.exception.ExemplarIsBorrowedException;
+import com.crud.library.exception.ExemplarPenaltyException;
+import com.crud.library.exception.WrongStatusException;
 import com.crud.library.mapper.RentalMapper;
 import com.crud.library.repository.ExemplarRepository;
 import com.crud.library.repository.RentalRepository;
@@ -49,13 +51,12 @@ public class RentalService {
     }
 
     @Transactional
-    public void giveBackExemplar(long userId, long exemplarId, ExemplarStatus exemplarStatus) throws NotFoundException {
+    public void giveBackExemplar(long userId, long exemplarId, ExemplarStatus exemplarStatus) throws NotFoundException, WrongStatusException, ExemplarPenaltyException {
         if (isUserNotExist(userId)) throw new NotFoundException("USER NOT FOUND IN DATABASE");
         if (isExemplarNotExist(exemplarId)) throw new NotFoundException("EXEMPLAR NOT FOUND IN DATABASE");
         if (isRentalNotExist(userId, exemplarId)) throw new NotFoundException("RENTAL NOT FOUND IN DATABASE");
-        Rental rental = rentalRepository.findByUser_IdAndExemplar_Id(userId, exemplarId);
-        rental.getExemplar().setStatus(exemplarStatus);
-        if (isExemplarStatusDamagedOrLost(rental, exemplarStatus)) return;
+        Rental rental = rentalRepository.findByUser_IdAndExemplar_IdOrderByRentDateDesc(userId, exemplarId);
+        if (isExemplarStatusNotGood(rental, exemplarStatus)) return;
         if (isBookKeepingPenalty(rental, LocalDate.now())) return;
         rental.getExemplar().setStatus(AVAILABLE);
         rentalMapper.mapToRentalDto(rentalRepository.save(rental));
@@ -64,7 +65,7 @@ public class RentalService {
 
     @Transactional
     public void payForExemplar(long exemplarId, String charge) {
-        Rental rental = rentalRepository.getByExemplar_Id(exemplarId);
+        Rental rental = rentalRepository.findByExemplar_IdOrderByRentDateDesc(exemplarId);
         if (isPenaltyUnnecessary(rental)) return;
         if (isPenaltyNotAvailable(charge)) return;
         rental.getExemplar().setStatus(AVAILABLE);
@@ -104,18 +105,15 @@ public class RentalService {
         return false;
     }
 
-    private boolean isExemplarStatusDamagedOrLost(Rental rental, ExemplarStatus exemplarStatus) {
-        if (exemplarStatus.equals(DAMAGED) && rental.getExemplar().getStatus().equals(exemplarStatus)) {
+    private boolean isExemplarStatusNotGood(Rental rental, ExemplarStatus exemplarStatus) throws WrongStatusException, ExemplarPenaltyException {
+        if (!exemplarStatus.equals(GOOD) && !exemplarStatus.equals(DAMAGED) && !exemplarStatus.equals(LOST)) throw new WrongStatusException("WRONG STATUS");
+        if (exemplarStatus.equals(GOOD)) return false;
+        if (exemplarStatus.equals(DAMAGED)) {
             rental.getExemplar().setStatus(DAMAGED);
-            log.info("USER HAS TO PAY FOR EXEMPLAR FIRST");
-            return true;
+            throw new ExemplarPenaltyException("USER HAS TO PAY FOR EXEMPLAR FIRST");
         }
-        if (exemplarStatus.equals(LOST) && rental.getExemplar().getStatus().equals(exemplarStatus)) {
-            rental.getExemplar().setStatus(LOST);
-            log.info("USER HAS TO PAY FOR EXEMPLAR FIRST");
-            return true;
-        }
-        return false;
+        rental.getExemplar().setStatus(LOST);
+        throw new ExemplarPenaltyException("USER HAS TO PAY FOR EXEMPLAR FIRST");
     }
 
     private boolean isBookKeepingPenalty(Rental rental, LocalDate dateOfReturn) {

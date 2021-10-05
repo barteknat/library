@@ -7,9 +7,9 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface RentalRepository extends JpaRepository<Rental, Long> {
 
-    Rental findByUser_IdAndExemplar_Id(long userId, long exemplarId);
+    Rental findByUser_IdAndExemplar_IdOrderByRentDateDesc(long userId, long exemplarId);
 
-    Rental getByExemplar_Id(long exemplarId);
+    Rental findByExemplar_IdOrderByRentDateDesc(long exemplarId);
 
     boolean existsByUser_IdAndExemplar_Id(long userId, long exemplarId);
 }
