@@ -7,4 +7,5 @@ public enum ExemplarStatus {
     DAMAGED,
     LOST,
     GOOD
+
 }
